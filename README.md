@@ -2,7 +2,11 @@
 
 # Installation
 - Pour ajouter le compilateur Windows depuis Linux :
-```rustup target add x86_64-pc-windows-gnu && cargo install cross```
+
+
+    rustup target add x86_64-pc-windows-gnu && cargo install cross
+
+
 Pour ajouter le compilateur Linux depuis Windows :
 ```rustup target add x86_64-unknown-linux-gnu && cargo install cross```
 
