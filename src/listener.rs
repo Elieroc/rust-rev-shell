@@ -7,7 +7,7 @@ use std::thread;
 pub fn start_listener() {
     let args: Vec<String> = std::env::args().collect();
     
-    if args.len() != 3 {
+    if args.len() != 2 {
         eprintln!("Usage: {} <port>", args[0]);
         return;
     }
