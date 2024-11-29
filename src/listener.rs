@@ -13,7 +13,7 @@ pub fn start_listener() {
     }
 
     let ip = "0.0.0.0"; // Ip en écoute sur toute les interfaces (Alias)
-    let port = &args[2]; // Port sélectionné par l'utilisateur.
+    let port = &args[1]; // Port sélectionné par l'utilisateur.
     
     let listener = TcpListener::bind(format!("{}:{}", ip, port)).expect("Failed to bind listener"); // Création d'un listener.
 
